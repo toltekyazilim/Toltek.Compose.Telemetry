@@ -19,8 +19,6 @@ services:
     build:
       context: ./
       dockerfile: ./src/TestWebApp/Dockerfile
-      cache_from:
-        - toltekyazilim/toltek-telemetry-testwebapp  
     restart: unless-stopped
     ports:
       - "${TESTWEBAPP_PORT}"
