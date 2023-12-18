@@ -1,0 +1,44 @@
+version: '3.9'
+x-default-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24
+services: 
+  # Grafana
+  toltek_grafana:
+    image: grafana/grafana
+    container_name: toltek_grafana
+    restart: always   
+    volumes:
+      - $PWD/config/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - $PWD/config/grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - ${GRAFANA_PORT}:3000
+    networks:
+      default:
+        ipv4_address: ${GRAFANA_IP}
+    logging: *logging
+  ebyu_seq:
+    image: datalust/seq:latest
+    container_name: toltek_seq
+    restart: always
+    ports:
+      - ${SEQ_PORT_UI}:80
+      - ${SEQ_PORT}:5341
+    environment:
+      - ACCEPT_EULA=Y   
+      - SEQ_API_CANONICALURI=${SEQ_DOMAIN}
+      - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_USERNAME}
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASS}
+    volumes:
+      - $PWD/data/seq-data:/data
+    networks:
+      default:
+        ipv4_address: ${SEQ_IP}
