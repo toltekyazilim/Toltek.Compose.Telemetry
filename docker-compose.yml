@@ -15,17 +15,13 @@ services:
   toltek_jaeger:
     image: jaegertracing/all-in-one:1.52
     container_name: ${JAEGER_HOST}
+    restart: always
     command:
       - "--memory.max-traces=8000"
       - "--query.base-path=/jaeger/ui"
       - "--prometheus.server-url=${PROMETHEUS_DOMAIN}"
       - "--prometheus.query.normalize-calls=true"
-      - "--prometheus.query.normalize-duration=true"
-    deploy:
-      resources:
-        limits:
-          memory: 300M
-    restart: unless-stopped
+      - "--prometheus.query.normalize-duration=true"       
     ports:
       - ${JAEGER_PORT_UI} # Jaeger UI
       - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
@@ -36,6 +32,7 @@ services:
   toltek_prometheus:
     image: quay.io/prometheus/prometheus:v2.48.1
     container_name: ${PROMETHEUS_HOST}
+    restart: always
     command:
       - --web.console.templates=/etc/prometheus/consoles
       - --web.console.libraries=/etc/prometheus/console_libraries
@@ -47,11 +44,7 @@ services:
       - --enable-feature=exemplar-storage
       - --enable-feature=otlp-write-receiver
     volumes:
-      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
-    deploy:
-      resources:
-        limits:
-          memory: 300M
+      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml  
     ports:
       - ${PROMETHEUS_PORT}:9090
     logging: *logging
