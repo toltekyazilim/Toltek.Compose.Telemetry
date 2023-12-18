@@ -9,7 +9,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.21.0.0/24
+        - subnet: ${SUBNET}
 services: 
   # Grafana
   toltek_grafana:
