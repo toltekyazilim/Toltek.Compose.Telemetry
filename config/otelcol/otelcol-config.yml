@@ -10,12 +10,12 @@ receivers:
 
 exporters:
   otlp:
-    endpoint: "jaeger:4317"
+    endpoint: "toltek_jaeger:4317"
     tls:
       insecure: true
   logging:
   prometheus:
-    endpoint: "otelcol:9464"
+    endpoint: "toltek_otelcol:9464"
     resource_to_telemetry_conversion:
       enabled: true
     enable_open_metrics: true
