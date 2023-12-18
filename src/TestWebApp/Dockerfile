@@ -9,17 +9,17 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Toltek.Compose.Telemetry.TestWebApp/Toltek.Compose.Telemetry.TestWebApp.csproj", "Toltek.Compose.Telemetry.TestWebApp/"]
-RUN dotnet restore "./Toltek.Compose.Telemetry.TestWebApp/./Toltek.Compose.Telemetry.TestWebApp.csproj"
+COPY ["TestWebApp/TestWebApp.csproj", "TestWebApp/"]
+RUN dotnet restore "./TestWebApp/./TestWebApp.csproj"
 COPY . .
-WORKDIR "/src/Toltek.Compose.Telemetry.TestWebApp"
-RUN dotnet build "./Toltek.Compose.Telemetry.TestWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/TestWebApp"
+RUN dotnet build "./TestWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Toltek.Compose.Telemetry.TestWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./TestWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Toltek.Compose.Telemetry.TestWebApp.dll"]
+ENTRYPOINT ["dotnet", "TestWebApp.dll"]
