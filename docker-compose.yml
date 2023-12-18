@@ -12,6 +12,31 @@ networks:
       config:
         - subnet: ${SUBNET}
 services: 
+ # Test Web App
+  toltek_testwebapp:
+    image: toltekyazilim/toltek-telemetry-testwebapp:0.0.1
+    container_name: ${TESTWEBAPP_HOST}
+    build:
+      context: ./
+      dockerfile: ./src/TestWebApp/Dockerfile
+      cache_from:
+        - toltekyazilim/toltek-telemetry-testwebapp  
+    restart: unless-stopped
+    ports:
+      - "${TESTWEBAPP_PORT}"
+    environment:    
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_SERVICE_NAME=${TESTWEBAPP_HOST}
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+    depends_on:     
+      otelcol:
+        condition: service_started
+    logging: *logging
+    networks:
+      default:
+        ipv4_address: ${TESTWEBAPP_IP}
 # OpenTelemetry Collector
   toltek_otelcol:
     image: otel/opentelemetry-collector-contrib:0.91.0
