@@ -23,7 +23,7 @@ services:
       - "--prometheus.query.normalize-calls=true"
       - "--prometheus.query.normalize-duration=true"       
     ports:
-      - ${JAEGER_PORT_UI} # Jaeger UI
+      - ${JAEGER_PORT_UI}:16686 # Jaeger UI
       - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
     environment:
       - METRICS_STORAGE_TYPE=prometheus
