@@ -1,4 +1,5 @@
 version: '3.9'
+name: toltek-telemetry
 x-default-logging: &logging
   driver: "json-file"
   options:
@@ -11,6 +12,24 @@ networks:
       config:
         - subnet: ${SUBNET}
 services: 
+# OpenTelemetry Collector
+  toltek_otelcol:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: ${OTELCOL_HOST}    
+    restart: unless-stopped
+    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
+    volumes:
+      - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
+      - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+    ports:
+      - 4317          # OTLP over gRPC receiver
+      - 4318          # OTLP over HTTP receiver
+    depends_on:
+      - toltek_jaeger
+    logging: *logging
+    networks:
+      default:
+        ipv4_address: ${OTELCOL_IP}
 # Jaeger
   toltek_jaeger:
     image: jaegertracing/all-in-one:1.52
@@ -27,6 +46,9 @@ services:
       - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
     environment:
       - METRICS_STORAGE_TYPE=prometheus
+    networks:
+      default:
+        ipv4_address: ${JAEGER_IP}
     logging: *logging
   # Prometheus
   toltek_prometheus:
@@ -48,6 +70,9 @@ services:
     ports:
       - ${PROMETHEUS_PORT}:9090
     logging: *logging
+    networks:
+      default:
+        ipv4_address: ${PROMETHEUS_IP}
   # Grafana
   toltek_grafana:
     image: grafana/grafana

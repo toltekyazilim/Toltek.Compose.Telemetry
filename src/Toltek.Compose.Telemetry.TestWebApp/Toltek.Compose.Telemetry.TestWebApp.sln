@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34321.82
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Toltek.Compose.Telemetry.TestWebApp", "Toltek.Compose.Telemetry.TestWebApp\Toltek.Compose.Telemetry.TestWebApp.csproj", "{814F4478-C85C-4C2D-8014-D428404518D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{814F4478-C85C-4C2D-8014-D428404518D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{814F4478-C85C-4C2D-8014-D428404518D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{814F4478-C85C-4C2D-8014-D428404518D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{814F4478-C85C-4C2D-8014-D428404518D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57F03CB6-0FC2-49B6-9C43-4BA0F263448D}
+	EndGlobalSection
+EndGlobal
