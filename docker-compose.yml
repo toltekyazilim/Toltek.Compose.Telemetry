@@ -11,10 +11,54 @@ networks:
       config:
         - subnet: ${SUBNET}
 services: 
+# Jaeger
+  toltek_jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: ${JAEGER_HOST}
+    command:
+      - "--memory.max-traces=8000"
+      - "--query.base-path=/jaeger/ui"
+      - "--prometheus.server-url=${PROMETHEUS_DOMAIN}"
+      - "--prometheus.query.normalize-calls=true"
+      - "--prometheus.query.normalize-duration=true"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    restart: unless-stopped
+    ports:
+      - ${JAEGER_PORT_UI} # Jaeger UI
+      - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
+    environment:
+      - METRICS_STORAGE_TYPE=prometheus
+    logging: *logging
+  # Prometheus
+  toltek_prometheus:
+    image: quay.io/prometheus/prometheus:v2.48.1
+    container_name: ${PROMETHEUS_HOST}
+    command:
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --storage.tsdb.retention.time=1h
+      - --config.file=/etc/prometheus/prometheus-config.yaml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --web.route-prefix=/
+      - --enable-feature=exemplar-storage
+      - --enable-feature=otlp-write-receiver
+    volumes:
+      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    ports:
+      - ${PROMETHEUS_PORT}:9090
+    logging: *logging
   # Grafana
   toltek_grafana:
     image: grafana/grafana
-    container_name: toltek_grafana
+    container_name: ${GRAFANA_HOST}
     restart: always   
     volumes:
       - $PWD/config/grafana/grafana.ini:/etc/grafana/grafana.ini
@@ -25,9 +69,10 @@ services:
       default:
         ipv4_address: ${GRAFANA_IP}
     logging: *logging
-  ebyu_seq:
+  # Seq
+  toltek_seq:
     image: datalust/seq:latest
-    container_name: toltek_seq
+    container_name: ${SEQ_HOST}
     restart: always
     ports:
       - ${SEQ_PORT_UI}:80
