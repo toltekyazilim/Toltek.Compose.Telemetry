@@ -8,6 +8,3 @@ datasources:
     enabled: true
     jsonData:
       connection: mongodb://toltek_mongodb:28017
-      user: admin
-    secureJsonData:
-      password: toltek_mongodb

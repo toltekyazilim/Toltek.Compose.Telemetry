@@ -50,6 +50,21 @@ services:
       default:
         ipv4_address: ${JAEGER_IP}
     logging: *logging
+# Zipkin
+  toltek_zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: ${ZIPKIN_HOST}
+    restart: always
+#    volumes:
+#      - $PWD/config/zipkin/zipkin.yaml:/etc/zipkin/zipkin.yaml  
+    ports:
+      - ${ZIPKIN_PORT}:9411
+    environment:
+      - STORAGE_TYPE=mem
+    logging: *logging
+    networks:
+      default:
+        ipv4_address: ${ZIPKIN_IP}
   # Prometheus
   toltek_prometheus:
     image: quay.io/prometheus/prometheus:v2.48.1
