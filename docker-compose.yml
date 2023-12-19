@@ -21,6 +21,7 @@ services:
     volumes:
       - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
       - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+      - $PWD/../logs/otelcol:/var/log/otel 
     ports:
       - ${OTELCOL_PORT_GRPC}:4317          # OTLP over gRPC receiver
       - ${OTELCOL_PORT_HTTP}:4318         # OTLP over HTTP receiver
@@ -52,6 +53,9 @@ services:
       - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
     environment:
       - METRICS_STORAGE_TYPE=prometheus
+    volumes:      
+#      - $PWD/../configurations/jaeger-configurations:/etc/jaeger/ 
+      - $PWD/../logs/jaeger:/var/log/jaeger
     networks:
       default:
         ipv4_address: ${JAEGER_IP}
@@ -61,8 +65,10 @@ services:
     image: openzipkin/zipkin:latest
     container_name: ${ZIPKIN_HOST}
     restart: always
-#    volumes:
-#      - $PWD/config/zipkin/zipkin.yaml:/etc/zipkin/zipkin.yaml  
+    volumes:      
+      - $PWD/../configurations/zipkin-configurations:/etc/zipkin/ 
+      - $PWD/../logs/zipkin:/var/log/zipkin
+#     - $PWD/config/zipkin/zipkin.yaml:/etc/zipkin/zipkin.yaml  
     ports:
       - ${ZIPKIN_PORT}:9411
     environment:
@@ -87,7 +93,10 @@ services:
       - --enable-feature=exemplar-storage
       - --enable-feature=otlp-write-receiver
     volumes:
-      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml  
+      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml      
+      - $PWD/../configurations/prometheus-configurations:/etc/prometheus/
+      - $PWD/../data/prometheus-data:/prometheus
+      - $PWD/../logs/prometheus:/var/log/prometheus
     ports:
       - ${PROMETHEUS_PORT}:9090
     environment:
@@ -98,12 +107,15 @@ services:
         ipv4_address: ${PROMETHEUS_IP}
   # Grafana
   toltek_grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: ${GRAFANA_HOST}
     restart: always   
     volumes:
       - $PWD/config/grafana/grafana.ini:/etc/grafana/grafana.ini
       - $PWD/config/grafana/provisioning/:/etc/grafana/provisioning/
+      - $PWD/../configurations/grafana-configurations:/etc/grafana 
+      - $PWD/../data/grafana-data:/var/lib/grafana
+      - $PWD/../logs/grafana:/var/log/grafana 
     ports:
       - ${GRAFANA_PORT}:3000
     environment:
@@ -115,6 +127,7 @@ services:
       PROMETHEUS_PORT: ${PROMETHEUS_PORT}
       PROMETHEUS_ENDPOINT: ${PROMETHEUS_ENDPOINT}
       GF_SECURITY_ADMIN_PASSWORD : ${GRAFANA_PASS}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
     networks:
       default:
         ipv4_address: ${GRAFANA_IP}
@@ -133,7 +146,9 @@ services:
       - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_USERNAME}
       - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASS}
     volumes:
+      - $PWD/../configurations/seq-configurations:/etc/seq/
       - $PWD/../data/seq-data:/data
+      - $PWD/../logs/seq:/var/log/seq
     networks:
       default:
         ipv4_address: ${SEQ_IP}

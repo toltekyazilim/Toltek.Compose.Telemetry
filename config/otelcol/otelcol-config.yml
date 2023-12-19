@@ -10,8 +10,12 @@ receivers:
 
 exporters:
 # Data sources: traces, metrics, logs
-#  file:
-#    path: ./data/traces.json
+  file/traces:
+    path: /log/otel/traces.log
+  file/metrics:
+    path: /log/otel/metrics.log
+  file/logs:
+    path: /log/otel/logs.log
   debug:
     verbosity: detailed
   otlp/jaeger:
