@@ -7,4 +7,4 @@ datasources:
     editable: true
     enabled: true
     jsonData:
-      connection: mongodb://toltek_mongodb:28017
+      connection: mongodb://toltek_mongodb:27017
