@@ -1,7 +1,3 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
-
-using System.Diagnostics.Metrics;
 using Examples.AspNetCore;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Instrumentation.AspNetCore;
@@ -9,7 +5,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-
+using System.Diagnostics.Metrics;
 var appBuilder = WebApplication.CreateBuilder(args);
 
 // Note: Switch between Zipkin/OTLP/Console by setting UseTracingExporter in appsettings.json.
@@ -47,16 +43,16 @@ appBuilder.Services.AddOpenTelemetry()
             .AddSource(Instrumentation.ActivitySourceName)
             .SetSampler(new AlwaysOnSampler())
             .AddHttpClientInstrumentation()
-            .AddAspNetCoreInstrumentation();
-
+            .AddAspNetCoreInstrumentation()
+            .AddSqlClientInstrumentation()
+            ; 
         // Use IConfiguration binding for AspNetCore instrumentation options.
         appBuilder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(appBuilder.Configuration.GetSection("AspNetCoreInstrumentation"));
-
+        builder.AddConsoleExporter();
         switch (tracingExporter)
         {
             case "zipkin":
-                builder.AddZipkinExporter();
-
+                builder.AddZipkinExporter(); 
                 builder.ConfigureServices(services =>
                 {
                     // Use IConfiguration binding for Zipkin exporter options.
@@ -73,7 +69,7 @@ appBuilder.Services.AddOpenTelemetry()
                 break;
 
             default:
-                builder.AddConsoleExporter();
+                
                 break;
         }
     })
@@ -87,7 +83,7 @@ appBuilder.Services.AddOpenTelemetry()
 #if EXPOSE_EXPERIMENTAL_FEATURES
             .SetExemplarFilter(new TraceBasedExemplarFilter())
 #endif
-            .AddRuntimeInstrumentation()
+            .AddRuntimeInstrumentation() 
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation();
 
@@ -106,7 +102,7 @@ appBuilder.Services.AddOpenTelemetry()
                 // No additional configuration necessary.
                 break;
         }
-
+        builder.AddConsoleExporter();
         switch (metricsExporter)
         {
             case "prometheus":
@@ -120,7 +116,7 @@ appBuilder.Services.AddOpenTelemetry()
                 });
                 break;
             default:
-                builder.AddConsoleExporter();
+               
                 break;
         }
     });
@@ -136,7 +132,7 @@ appBuilder.Logging.AddOpenTelemetry(options =>
     var resourceBuilder = ResourceBuilder.CreateDefault();
     configureResource(resourceBuilder);
     options.SetResourceBuilder(resourceBuilder);
-
+    options.AddConsoleExporter(); 
     switch (logExporter)
     {
         case "otlp":
@@ -145,33 +141,23 @@ appBuilder.Logging.AddOpenTelemetry(options =>
                 // Use IConfiguration directly for Otlp exporter endpoint option.
                 otlpOptions.Endpoint = new Uri(appBuilder.Configuration.GetValue("Otlp:Endpoint", defaultValue: "https://otelcol.ebyu.toltekcloud.com")!);
             });
-            break;
-        default:
-            options.AddConsoleExporter();
-            break;
+            break; 
     }
 });
 
 appBuilder.Services.AddControllers();
-
 appBuilder.Services.AddEndpointsApiExplorer();
-
 appBuilder.Services.AddSwaggerGen();
 
 var app = appBuilder.Build();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 // Configure OpenTelemetry Prometheus AspNetCore middleware scrape endpoint if enabled.
 if (metricsExporter.Equals("prometheus", StringComparison.OrdinalIgnoreCase))
 {

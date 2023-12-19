@@ -1,0 +1,80 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+
+exporters:
+# Data sources: traces, metrics, logs
+#  file:
+#    path: ./data/traces.json
+  debug:
+    verbosity: detailed
+  otlp/jaeger:
+    endpoint: ${JAEGER_ENDPOINT}
+    tls:
+      insecure: true
+  otlphttp/seq:
+    endpoint: ${SEQ_ENDPOINT}
+    auth:
+      authenticator: headers_setter
+#  prometheus:
+#    endpoint: toltek_prometheus:9090
+#    namespace: default
+  otlphttp/prometheus:
+    endpoint: ${PROMETHEUS_ENDPOINT}
+    tls:
+      insecure: true
+  zipkin:
+    endpoint: ${ZIPKIN_ENDPOINT}
+
+processors:
+  batch:
+  filter/ottl:
+    error_mode: ignore
+    metrics:
+      metric:
+        # FIXME: remove when a Metrics View is implemented in the checkout and productcatalog components
+        # or when this issue is resolved: https://github.com/open-telemetry/opentelemetry-go-contrib/issues/3071
+        - 'name == "rpc.server.duration"'
+  transform:
+    metric_statements:
+      - context: metric
+        statements:
+          # FIXME: remove when this issue is resolved: https://github.com/open-telemetry/opentelemetry-java/issues/4834
+          - set(description, "") where name == "queueSize"
+          # FIXME: remove when this issue is resolved: https://github.com/open-telemetry/opentelemetry-python-contrib/issues/1958
+          - set(description, "") where name == "http.client.duration"
+       
+extensions:
+  health_check:
+  pprof:
+  zpages:
+  headers_setter:
+    headers:
+      - action: upsert
+        key: X-Seq-ApiKey
+        value: ${SEQ_PASS}
+
+connectors:
+  spanmetrics:
+
+service:
+  extensions: [headers_setter ]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, zipkin, debug, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [filter/ottl, transform, batch]
+      exporters: [otlphttp/prometheus,debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/seq,debug]

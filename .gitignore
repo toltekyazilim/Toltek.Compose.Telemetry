@@ -331,4 +331,3 @@ ASALocalRun/
 Apps/Toltek.Campus.Manage/logs/*.json
 .env
 /src/TestWebApp/appsettings.Development.json
-config/*

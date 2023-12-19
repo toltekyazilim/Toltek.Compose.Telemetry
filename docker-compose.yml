@@ -22,10 +22,16 @@ services:
       - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
       - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
     ports:
-      - 4317          # OTLP over gRPC receiver
-      - 4318          # OTLP over HTTP receiver
+      - ${OTELCOL_PORT_GRPC}:4317          # OTLP over gRPC receiver
+      - ${OTELCOL_PORT_HTTP}:4318         # OTLP over HTTP receiver
     depends_on:
       - toltek_jaeger
+    environment:
+      JAEGER_ENDPOINT: ${JAEGER_ENDPOINT}
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
+      PROMETHEUS_ENDPOINT: ${PROMETHEUS_ENDPOINT}
+      SEQ_ENDPOINT: ${SEQ_ENDPOINT}
+      SEQ_PASS: ${SEQ_PASS}
     logging: *logging
     networks:
       default:
@@ -84,6 +90,8 @@ services:
       - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml  
     ports:
       - ${PROMETHEUS_PORT}:9090
+    environment:
+      OTELCOL_HOST: ${OTELCOL_HOST}
     logging: *logging
     networks:
       default:
@@ -98,6 +106,15 @@ services:
       - $PWD/config/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
       - ${GRAFANA_PORT}:3000
+    environment:
+      MONGODB_ENDPOINT: ${MONGODB_ENDPOINT}
+      JAEGER_HOST: ${JAEGER_HOST}
+      JAEGER_PORT_UI: ${JAEGER_PORT_UI}
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
+      PROMETHEUS_HOST: ${PROMETHEUS_HOST}
+      PROMETHEUS_PORT: ${PROMETHEUS_PORT}
+      PROMETHEUS_ENDPOINT: ${PROMETHEUS_ENDPOINT}
+      GF_SECURITY_ADMIN_PASSWORD : ${GRAFANA_PASS}
     networks:
       default:
         ipv4_address: ${GRAFANA_IP}
@@ -116,7 +133,7 @@ services:
       - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_USERNAME}
       - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASS}
     volumes:
-      - $PWD/data/seq-data:/data
+      - $PWD/../data/seq-data:/data
     networks:
       default:
         ipv4_address: ${SEQ_IP}
