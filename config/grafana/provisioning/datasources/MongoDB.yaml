@@ -7,4 +7,4 @@ datasources:
     editable: true
     enabled: true
     jsonData:
-      connection: mongodb://${MONGODB_ENDPOINT}
+      connection: ${MONGODB_ENDPOINT_LOCAL}

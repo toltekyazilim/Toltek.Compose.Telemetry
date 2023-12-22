@@ -3,13 +3,13 @@ datasources:
   - name: Prometheus
     uid: webstore-metrics
     type: prometheus
-    url: http://${PROMETHEUS_HOST}:${PROMETHEUS_PORT}
+    url: ${PROMETHEUS_ENDPOINT_LOCAL}
     editable: true
     isDefault: true
     jsonData:
       exemplarTraceIdDestinations:
         - datasourceUid: webstore-traces
           name: trace_id
-        - url: http://${JAEGER_HOST}:${JAEGER_PORT_UI}/jaeger/ui/trace/$${__value.raw}
+        - url: ${JAEGER_ENDPOINT_LOCAL}/jaeger/ui/trace/$${__value.raw}
           name: trace_id
           urlDisplayLabel: View in Jaeger UI

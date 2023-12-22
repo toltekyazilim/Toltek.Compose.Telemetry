@@ -15,47 +15,52 @@ services:
 # OpenTelemetry Collector
   toltek_otelcol:
     image: otel/opentelemetry-collector-contrib:0.91.0
-    container_name: ${OTELCOL_HOST}    
-    restart: unless-stopped
-    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
-    volumes:
-      - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
-      - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
-      - $PWD/../logs/otelcol:/var/log/otel 
+    container_name: ${OTELCOL_NAME}    
+    restart: always
     ports:
       - ${OTELCOL_PORT_GRPC}:4317          # OTLP over gRPC receiver
       - ${OTELCOL_PORT_HTTP}:4318         # OTLP over HTTP receiver
     depends_on:
       - toltek_jaeger
+      - toltek_prometheus
+      - toltek_seq
+      - toltek_zipkin
     environment:
-      JAEGER_ENDPOINT: ${JAEGER_ENDPOINT}
-      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
-      PROMETHEUS_ENDPOINT: ${PROMETHEUS_ENDPOINT}
-      SEQ_ENDPOINT: ${SEQ_ENDPOINT}
-      SEQ_PASS: ${SEQ_PASS}
-    logging: *logging
+      JAEGER_ENDPOINT_LOCAL: ${JAEGER_ENDPOINT_LOCAL}
+      PROMETHEUS_ENDPOINT_LOCAL: ${PROMETHEUS_ENDPOINT_LOCAL}
+      ZIPKIN_ENDPOINT_LOCAL: ${ZIPKIN_ENDPOINT_LOCAL}
+      SEQ_ENDPOINT_LOCAL: ${SEQ_ENDPOINT_LOCAL}
+      JAEGER_ENDPOINT_OTLP: ${JAEGER_ENDPOINT_OTLP}
+      PROMETHEUS_ENDPOINT_OTLP: ${PROMETHEUS_ENDPOINT_OTLP}
+      ZIPKIN_ENDPOINT_OTLP: ${ZIPKIN_ENDPOINT_OTLP}
+      SEQ_ENDPOINT_OTLP: ${SEQ_ENDPOINT_OTLP}
+      SEQ_PASS: ${SEQ_PASS} 
+    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
+    volumes:
+      - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
+      - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
     networks:
       default:
         ipv4_address: ${OTELCOL_IP}
+    logging: *logging
 # Jaeger
   toltek_jaeger:
     image: jaegertracing/all-in-one:1.52
-    container_name: ${JAEGER_HOST}
+    container_name: ${JAEGER_NAME}
     restart: always
-    command:
-      - "--memory.max-traces=8000"
-      - "--query.base-path=/jaeger/ui"
-      - "--prometheus.server-url=${PROMETHEUS_DOMAIN}"
-      - "--prometheus.query.normalize-calls=true"
-      - "--prometheus.query.normalize-duration=true"       
     ports:
       - ${JAEGER_PORT_UI}:16686 # Jaeger UI
       - ${JAEGER_PORT_OLTP}:4317  # OTLP gRPC default port
+    command:
+      - "--memory.max-traces=8000"
+      - "--query.base-path=/jaeger/ui"
+      - "--prometheus.server-url=${PROMETHEUS_ENDPOINT_LOCAL}"
+      - "--prometheus.query.normalize-calls=true"
+      - "--prometheus.query.normalize-duration=true"  
     environment:
       - METRICS_STORAGE_TYPE=prometheus
-    volumes:      
-#      - $PWD/../configurations/jaeger-configurations:/etc/jaeger/ 
-      - $PWD/../logs/jaeger:/var/log/jaeger
+#    volumes:      
+#      - $PWD/../configurations/jaeger-configurations:/etc/jaeger/  
     networks:
       default:
         ipv4_address: ${JAEGER_IP}
@@ -63,25 +68,28 @@ services:
 # Zipkin
   toltek_zipkin:
     image: openzipkin/zipkin:latest
-    container_name: ${ZIPKIN_HOST}
+    container_name: ${ZIPKIN_NAME}
     restart: always
-    volumes:      
-      - $PWD/../configurations/zipkin-configurations:/etc/zipkin/ 
-      - $PWD/../logs/zipkin:/var/log/zipkin
-#     - $PWD/config/zipkin/zipkin.yaml:/etc/zipkin/zipkin.yaml  
     ports:
       - ${ZIPKIN_PORT}:9411
     environment:
-      - STORAGE_TYPE=mem
-    logging: *logging
+      - STORAGE_TYPE=mem 
+#    volumes:       
+#     - $PWD/../logs/zipkin:/var/log/zipkin
+#     - $PWD/config/zipkin/zipkin.yaml:/etc/zipkin/zipkin.yaml  
     networks:
       default:
         ipv4_address: ${ZIPKIN_IP}
+    logging: *logging
   # Prometheus
   toltek_prometheus:
-    image: quay.io/prometheus/prometheus:v2.48.1
-    container_name: ${PROMETHEUS_HOST}
+    image: quay.io/prometheus/prometheus:latest
+    container_name: ${PROMETHEUS_NAME}
     restart: always
+    ports:
+      - ${PROMETHEUS_PORT}:9090
+    environment:
+      OTELCOL_NAME: ${OTELCOL_NAME}
     command:
       - --web.console.templates=/etc/prometheus/consoles
       - --web.console.libraries=/etc/prometheus/console_libraries
@@ -93,41 +101,39 @@ services:
       - --enable-feature=exemplar-storage
       - --enable-feature=otlp-write-receiver
     volumes:
-      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml      
-      - $PWD/../configurations/prometheus-configurations:/etc/prometheus/
-      - $PWD/../data/prometheus-data:/prometheus
-      - $PWD/../logs/prometheus:/var/log/prometheus
-    ports:
-      - ${PROMETHEUS_PORT}:9090
-    environment:
-      OTELCOL_HOST: ${OTELCOL_HOST}
-    logging: *logging
+      - $PWD/config/prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
+      - $PWD/../../data/prometheus-data:/prometheus
     networks:
       default:
         ipv4_address: ${PROMETHEUS_IP}
+    logging: *logging
   # Grafana
   toltek_grafana:
     image: grafana/grafana:latest
-    container_name: ${GRAFANA_HOST}
+    container_name: ${GRAFANA_NAME}
     restart: always   
+    ports:
+      - ${GRAFANA_PORT}:3000
+    depends_on:
+      - toltek_jaeger
+      - toltek_prometheus
+      - toltek_seq
+      - toltek_zipkin
+    environment:
+      MSSQL_ENDPOINT_LOCAL: ${MSSQL_ENDPOINT_LOCAL}
+      MONGODB_ENDPOINT_LOCAL: ${MONGODB_ENDPOINT_LOCAL}
+      REDIS_ENDPOINT_LOCAL: ${REDIS_ENDPOINT_LOCAL}
+      JAEGER_ENDPOINT_LOCAL: ${JAEGER_ENDPOINT_LOCAL}     
+      PROMETHEUS_ENDPOINT_LOCAL: ${PROMETHEUS_ENDPOINT_LOCAL}
+      ZIPKIN_ENDPOINT_LOCAL: ${ZIPKIN_ENDPOINT_LOCAL} 
+      SEQ_ENDPOINT_LOCAL: ${SEQ_ENDPOINT_LOCAL} 
+      GF_SECURITY_ADMIN_PASSWORD : ${GRAFANA_PASS}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
     volumes:
       - $PWD/config/grafana/grafana.ini:/etc/grafana/grafana.ini
       - $PWD/config/grafana/provisioning/:/etc/grafana/provisioning/
-      - $PWD/../configurations/grafana-configurations:/etc/grafana 
-      - $PWD/../data/grafana-data:/var/lib/grafana
-      - $PWD/../logs/grafana:/var/log/grafana 
-    ports:
-      - ${GRAFANA_PORT}:3000
-    environment:
-      MONGODB_ENDPOINT: ${MONGODB_ENDPOINT}
-      JAEGER_HOST: ${JAEGER_HOST}
-      JAEGER_PORT_UI: ${JAEGER_PORT_UI}
-      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
-      PROMETHEUS_HOST: ${PROMETHEUS_HOST}
-      PROMETHEUS_PORT: ${PROMETHEUS_PORT}
-      PROMETHEUS_ENDPOINT: ${PROMETHEUS_ENDPOINT}
-      GF_SECURITY_ADMIN_PASSWORD : ${GRAFANA_PASS}
-      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      - $PWD/../../data/grafana-etc:/etc/grafana 
+      - $PWD/../../data/grafana-data:/var/lib/grafana    
     networks:
       default:
         ipv4_address: ${GRAFANA_IP}
@@ -135,20 +141,19 @@ services:
   # Seq
   toltek_seq:
     image: datalust/seq:latest
-    container_name: ${SEQ_HOST}
+    container_name: ${SEQ_NAME}
     restart: always
     ports:
       - ${SEQ_PORT_UI}:80
       - ${SEQ_PORT}:5341
     environment:
-      - ACCEPT_EULA=Y   
-      - SEQ_API_CANONICALURI=${SEQ_DOMAIN}
+      - ACCEPT_EULA=Y
+      - SEQ_API_CANONICALURI=${SEQ_ENDPOINT_OTLP}
       - SEQ_FIRSTRUN_ADMINUSERNAME=${SEQ_USERNAME}
       - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_PASS}
-    volumes:
-      - $PWD/../configurations/seq-configurations:/etc/seq/
-      - $PWD/../data/seq-data:/data
-      - $PWD/../logs/seq:/var/log/seq
+    volumes: 
+      - $PWD/../../data/seq-data:/data
     networks:
       default:
         ipv4_address: ${SEQ_IP}
+    logging: *logging

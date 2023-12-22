@@ -19,22 +19,22 @@ exporters:
   debug:
     verbosity: detailed
   otlp/jaeger:
-    endpoint: ${JAEGER_ENDPOINT}
+    endpoint: ${JAEGER_ENDPOINT_OTLP}
     tls:
       insecure: true
   otlphttp/seq:
-    endpoint: ${SEQ_ENDPOINT}
+    endpoint: ${SEQ_ENDPOINT_OTLP}
     auth:
       authenticator: headers_setter
 #  prometheus:
 #    endpoint: toltek_prometheus:9090
 #    namespace: default
   otlphttp/prometheus:
-    endpoint: ${PROMETHEUS_ENDPOINT}
+    endpoint: ${PROMETHEUS_ENDPOINT_OTLP}
     tls:
       insecure: true
   zipkin:
-    endpoint: ${ZIPKIN_ENDPOINT}
+    endpoint: ${ZIPKIN_ENDPOINT_OTLP}
 
 processors:
   batch:

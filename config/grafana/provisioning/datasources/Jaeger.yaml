@@ -3,6 +3,6 @@ datasources:
   - name: Jaeger
     uid: webstore-traces
     type: jaeger
-    url: http://${JAEGER_HOST}:${JAEGER_PORT_UI}/jaeger/ui
+    url: ${JAEGER_ENDPOINT_LOCAL}/jaeger/ui
     editable: true
     isDefault: false
