@@ -12,6 +12,34 @@ networks:
       config:
         - subnet: ${SUBNET}
 services:
+ # Node Prometheus Exporter
+  toltek_nexporter:
+    image: quay.io/prometheus/node-exporter
+    container_name: ${NEXPORTER_NAME}
+    command:
+      - '--path.rootfs=/host' 
+    pid: host
+    restart: always
+    ports:
+      - ${NEXPORTER_PORT}:9100   
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      default:
+        ipv4_address: ${NEXPORTER_IP}
+    logging: *logging
+  # Nginx Prometheus Exporter
+  toltek_pexporter:
+    image: nginx/nginx-prometheus-exporter
+    container_name: ${PEXPORTER_NAME} 
+    restart: always
+    ports:
+      - ${PEXPORTER_PORT}:9113
+    command: [ "--nginx.scrape-uri=${PROXY_ENDPOINT_SCRAPE}"] 
+    networks:
+      default:
+        ipv4_address: ${PEXPORTER_IP}
+    logging: *logging
 # OpenTelemetry Collector
   toltek_otelcol:
     image: otel/opentelemetry-collector-contrib:0.91.0
@@ -20,6 +48,10 @@ services:
     ports:
       - ${OTELCOL_PORT_GRPC}:4317          # OTLP over gRPC receiver
       - ${OTELCOL_PORT_HTTP}:4318         # OTLP over HTTP receiver
+      - "8889:8889"   # Prometheus metrics exporter (scrape endpoint)
+      - "9097:8888"   # Prometheus metrics exporter (scrape endpoint) 
+      - "13133:13133" # health_check extension
+      - "55679:55679" # ZPages extension 
     depends_on:
       - toltek_jaeger
       - toltek_prometheus
@@ -34,14 +66,27 @@ services:
       PROMETHEUS_ENDPOINT_OTLP: ${PROMETHEUS_ENDPOINT_OTLP}
       ZIPKIN_ENDPOINT_OTLP: ${ZIPKIN_ENDPOINT_OTLP}
       SEQ_ENDPOINT_OTLP: ${SEQ_ENDPOINT_OTLP}
+      LOKI_ENDPOINT_OTLP: ${LOKI_ENDPOINT_OTLP}
       SEQ_PASS: ${SEQ_PASS} 
     command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-config-extras.yml" ]
     volumes:
       - $PWD/config/otelcol/otelcol-config.yml:/etc/otelcol-config.yml
-      - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+      - $PWD/config/otelcol/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml 
+      - $PWD/../../data/otelcol-data:/log/otel 
     networks:
       default:
         ipv4_address: ${OTELCOL_IP}
+    logging: *logging
+# Loki
+  toltek_loki:
+    image: grafana/loki
+    container_name: ${LOKI_NAME}
+    restart: always
+    ports:
+      - ${LOKI_PORT}:3100
+    networks:
+      default:
+        ipv4_address: ${LOKI_IP}
     logging: *logging
 # Jaeger
   toltek_jaeger:
@@ -90,6 +135,7 @@ services:
       - ${PROMETHEUS_PORT}:9090
     environment:
       OTELCOL_NAME: ${OTELCOL_NAME}
+      NEXPORTER_NAME: ${NEXPORTER_NAME}
     command:
       - --web.console.templates=/etc/prometheus/consoles
       - --web.console.libraries=/etc/prometheus/console_libraries
@@ -120,15 +166,23 @@ services:
       - toltek_seq
       - toltek_zipkin
     environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
+      GF_USERS_ALLOW_SIGN_UP: ${GF_USERS_ALLOW_SIGN_UP}
+#      GF_SERVER_DOMAIN: ${GF_SERVER_DOMAIN}
+      GF_SMTP_ENABLED: ${GF_SMTP_ENABLED}
+      GF_SMTP_HOST: ${GF_SMTP_HOST}
+      GF_SMTP_USER: ${GF_SMTP_USER}
+      GF_SMTP_PASSWORD: ${GF_SMTP_PASSWORD}
+      GF_SMTP_FROM_ADDRESS: ${GF_SMTP_FROM_ADDRESS}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel,grafana-worldmap-panel
       MSSQL_ENDPOINT_LOCAL: ${MSSQL_ENDPOINT_LOCAL}
       MONGODB_ENDPOINT_LOCAL: ${MONGODB_ENDPOINT_LOCAL}
       REDIS_ENDPOINT_LOCAL: ${REDIS_ENDPOINT_LOCAL}
       JAEGER_ENDPOINT_LOCAL: ${JAEGER_ENDPOINT_LOCAL}     
       PROMETHEUS_ENDPOINT_LOCAL: ${PROMETHEUS_ENDPOINT_LOCAL}
       ZIPKIN_ENDPOINT_LOCAL: ${ZIPKIN_ENDPOINT_LOCAL} 
-      SEQ_ENDPOINT_LOCAL: ${SEQ_ENDPOINT_LOCAL} 
-      GF_SECURITY_ADMIN_PASSWORD : ${GRAFANA_PASS}
-      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      LOKI_ENDPOINT_LOCAL: ${LOKI_ENDPOINT_LOCAL}
+      SEQ_ENDPOINT_LOCAL: ${SEQ_ENDPOINT_LOCAL}
     volumes:
       - $PWD/config/grafana/grafana.ini:/etc/grafana/grafana.ini
       - $PWD/config/grafana/provisioning/:/etc/grafana/provisioning/

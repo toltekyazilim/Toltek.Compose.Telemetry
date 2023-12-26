@@ -1,8 +1,22 @@
 global:
-  evaluation_interval: 30s
-  scrape_interval: 5s
+  evaluation_interval: 120s
+  scrape_interval: 120s
 scrape_configs:
-- job_name: otel-collector
+#- job_name: otel
+#  static_configs:
+#  - targets:
+#    - 'toltek_otelcol:8889'
+- job_name: prometheus
   static_configs:
   - targets:
     - 'toltek_otelcol:8888'
+    - 'toltek_nexporter:9100'
+    - 'toltek_pexporter:9113'
+- job_name: hosts
+  static_configs:
+  - targets:   
+    - '79.123.136.195:9115'
+    - '79.123.136.196:9115'
+    - '79.123.136.183:9115'
+    - '79.123.136.189:9115'
+

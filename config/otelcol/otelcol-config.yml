@@ -1,3 +1,14 @@
+extensions:
+  health_check:
+  # pprof:
+  # zpages:
+  #   endpoint: :55679
+  headers_setter:
+    headers:
+      - action: upsert
+        key: X-Seq-ApiKey
+        value: ${SEQ_PASS}
+
 receivers:
   otlp:
     protocols:
@@ -7,15 +18,16 @@ receivers:
           allowed_origins:
             - "http://*"
             - "https://*"
+  zipkin:
 
 exporters:
 # Data sources: traces, metrics, logs
   file/traces:
-    path: /log/otel/traces.log
+    path: /log/traces.log
   file/metrics:
-    path: /log/otel/metrics.log
+    path: /log/metrics.log
   file/logs:
-    path: /log/otel/logs.log
+    path: /log/logs.log
   debug:
     verbosity: detailed
   otlp/jaeger:
@@ -35,6 +47,10 @@ exporters:
       insecure: true
   zipkin:
     endpoint: ${ZIPKIN_ENDPOINT_OTLP}
+  loki:
+    endpoint: "${LOKI_ENDPOINT_OTLP}"
+    tls:
+      insecure: true
 
 processors:
   batch:
@@ -54,15 +70,7 @@ processors:
           # FIXME: remove when this issue is resolved: https://github.com/open-telemetry/opentelemetry-python-contrib/issues/1958
           - set(description, "") where name == "http.client.duration"
        
-extensions:
-  health_check:
-  pprof:
-  zpages:
-  headers_setter:
-    headers:
-      - action: upsert
-        key: X-Seq-ApiKey
-        value: ${SEQ_PASS}
+
 
 connectors:
   spanmetrics:
@@ -71,14 +79,37 @@ service:
   extensions: [headers_setter ]
   pipelines:
     traces:
-      receivers: [otlp]
+      receivers:
+        - otlp
+#        - zipkin
       processors: [batch]
-      exporters: [otlp/jaeger, zipkin, debug, spanmetrics]
+      exporters:       
+        - spanmetrics
+        - otlp/jaeger
+        - zipkin 
+#        - file/traces
+#        - debug 
     metrics:
-      receivers: [otlp, spanmetrics]
-      processors: [filter/ottl, transform, batch]
-      exporters: [otlphttp/prometheus,debug]
+      receivers: 
+        - spanmetrics
+        - otlp 
+      processors: 
+        - filter/ottl
+        - transform
+        - batch
+      exporters: 
+      - otlphttp/prometheus 
+#      - file/metrics
+#      - debug
     logs:
-      receivers: [otlp]
+      receivers: 
+        - otlp
       processors: [batch]
-      exporters: [otlphttp/seq,debug]
+      exporters: 
+        - otlphttp/seq
+        - loki
+#        - file/logs
+        - debug
+#    extensions:
+#     - health_check
+#     - zpages

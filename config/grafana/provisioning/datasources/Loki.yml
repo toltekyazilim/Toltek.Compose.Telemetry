@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+  - type: loki
+    uid: loki
+    name: loki
+    access: proxy
+    basicAuth: false
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "docker"
+    editable: true
+    isDefault: false
+    url: ${LOKI_ENDPOINT_LOCAL}
+    version: 1
